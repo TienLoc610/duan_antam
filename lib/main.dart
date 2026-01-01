@@ -1,44 +1,27 @@
-// file: main.dart
 import 'package:flutter/material.dart';
-import 'an_tam_home_screen.dart';
-import 'home.dart'; // Đây là màn hình Cha Mẹ bản Responsive
+import 'package:firebase_core/firebase_core.dart';
+import 'screens/role_selection_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const AnTamApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AnTamApp extends StatelessWidget {
+  const AnTamApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'An Tâm',
+      title: 'An Tâm System',
       theme: ThemeData(
+        fontFamily: 'Arimo',
         primarySwatch: Colors.green,
-        fontFamily: 'Arimo', // Đảm bảo bạn đã khai báo font trong pubspec.yaml
+        useMaterial3: true,
       ),
-      // Màn hình khởi động là màn hình chọn vai trò
-      initialRoute: '/',
-      routes: {
-        '/': (context) => AnTamHomeScreen(),
-        '/chame-dashboard': (context) => const HomeScreen(), // Dùng bản home.dart responsive
-        '/con-dashboard': (context) => const ConDashboardPlaceholder(), // Màn hình tạm cho con
-      },
-    );
-  }
-}
-
-// Màn hình tạm thời cho bên Con (để test nút bấm)
-class ConDashboardPlaceholder extends StatelessWidget {
-  const ConDashboardPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Giao diện Con"), backgroundColor: const Color(0xFF155DFC)),
-      body: const Center(child: Text("Dashboard dành cho người chăm sóc đang phát triển")),
+      home: const RoleSelectionScreen(),
     );
   }
 }

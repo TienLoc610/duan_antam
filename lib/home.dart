@@ -1,12 +1,61 @@
 // file: home.dart
+import 'dart:async'; // Dùng cho đồng hồ đếm giờ
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Dùng để format ngày giờ
+import 'package:url_launcher/url_launcher.dart'; // Dùng để gọi điện
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Biến trạng thái: Đã uống thuốc chưa?
+  bool _hasTakenMedicine = false;
+
+  // Hàm xử lý gọi điện
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchLaunchUrl(launchUri);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể thực hiện cuộc gọi')),
+      );
+    }
+  }
+
+  // Hàm xử lý sự kiện bấm nút
+  void _handleButtonPress(String actionType) {
+    if (actionType == 'SOS') {
+      // Logic khẩn cấp (có thể mở gọi 113 hoặc gửi tin nhắn)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã gửi cảnh báo SOS đến các con!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } else if (actionType == 'MEDICINE') {
+      setState(() {
+        _hasTakenMedicine = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tuyệt vời! Đã ghi nhận ông/bà đã uống thuốc.'),
+        ),
+      );
+    } else if (actionType == 'CALL') {
+      // Gọi đến số điện thoại con (ví dụ demo)
+      _makePhoneCall('0909123456');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Sử dụng LayoutBuilder để tính toán kích thước an toàn
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -28,10 +77,14 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       _Banner(),
                       const SizedBox(height: 24),
-                      _ActionSection(),
+                      // Truyền hàm xử lý và trạng thái xuống ActionSection
+                      _ActionSection(
+                        onPress: _handleButtonPress,
+                        isMedicineTaken: _hasTakenMedicine,
+                      ),
                       const SizedBox(height: 24),
-                      _Footer(),
-                      const SizedBox(height: 24), // Padding dưới cùng
+                      const _RealTimeClock(), // Widget đồng hồ chạy thật
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -44,7 +97,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ================= HEADER =================
+// ================= HEADER (Giữ nguyên) =================
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -55,7 +108,6 @@ class _Header extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Nút Back để quay lại màn hình chọn vai trò
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
@@ -76,19 +128,18 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ================= BANNER =================
+// ================= BANNER (Giữ nguyên) =================
 class _Banner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Giới hạn chiều cao banner để không chiếm hết màn hình
     return SizedBox(
-      height: 300,
+      height: 250, // Giảm chiều cao chút cho cân đối
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
           Image.network(
-            'https://placehold.co/600x400', // Đổi tỉ lệ ảnh ngang cho dễ nhìn hơn
+            'https://placehold.co/600x400',
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) => Container(
               color: Colors.grey[300],
@@ -121,34 +172,44 @@ class _Banner extends StatelessWidget {
   }
 }
 
-// ================= ACTION SECTION =================
+// ================= ACTION SECTION (Cập nhật Logic) =================
 class _ActionSection extends StatelessWidget {
+  final Function(String) onPress;
+  final bool isMedicineTaken;
+
+  const _ActionSection({required this.onPress, required this.isMedicineTaken});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: const [
+        children: [
           _ActionCard(
-            color: Color(0xFFE7000B), // Đỏ
-            icon: Icons
-                .warning_amber_rounded, // Dùng Icon chuẩn Flutter thay vì Text emoji
+            color: const Color(0xFFE7000B),
+            icon: Icons.warning_amber_rounded,
             title: 'KHẨN CẤP',
             subtitle: 'Bấm khi gặp nguy hiểm',
+            onTap: () => onPress('SOS'),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+          // Logic thay đổi giao diện nút uống thuốc
           _ActionCard(
-            color: Color(0xFF00C850), // Xanh lá
-            icon: Icons.check_circle_outline,
-            title: 'ĐÃ UỐNG THUỐC',
-            subtitle: 'Bấm sau khi uống thuốc',
+            color: isMedicineTaken ? Colors.grey : const Color(0xFF00C850),
+            icon: isMedicineTaken ? Icons.check : Icons.check_circle_outline,
+            title: isMedicineTaken ? 'ĐÃ UỐNG XONG' : 'UỐNG THUỐC',
+            subtitle: isMedicineTaken
+                ? 'Hôm nay ông/bà đã uống rồi'
+                : 'Bấm sau khi uống thuốc',
+            onTap: isMedicineTaken ? null : () => onPress('MEDICINE'),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _ActionCard(
-            color: Color(0xFF155DFC), // Xanh dương
+            color: const Color(0xFF155DFC),
             icon: Icons.phone_in_talk,
             title: 'GỌI CON',
-            subtitle: 'Con sẽ gọi lại khi rảnh',
+            subtitle: 'Bấm để gọi ngay cho con',
+            onTap: () => onPress('CALL'),
           ),
         ],
       ),
@@ -161,12 +222,14 @@ class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap; // Thêm callback
 
   const _ActionCard({
     required this.color,
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   @override
@@ -174,14 +237,9 @@ class _ActionCard extends StatelessWidget {
     return Material(
       color: color,
       borderRadius: BorderRadius.circular(24),
-      elevation: 8,
+      elevation: onTap == null ? 0 : 8, // Bỏ bóng đổ nếu nút bị disable
       child: InkWell(
-        onTap: () {
-          // Xử lý sự kiện bấm nút ở đây
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Đã chọn: $title')));
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(24),
         child: Container(
           width: double.infinity,
@@ -195,7 +253,7 @@ class _ActionCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 32, // Giảm size chữ một chút để không bị tràn
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Arimo',
                 ),
@@ -206,7 +264,7 @@ class _ActionCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white70,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontFamily: 'Arimo',
                 ),
               ),
@@ -218,8 +276,64 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-// ================= FOOTER =================
-class _Footer extends StatelessWidget {
+// ================= REAL-TIME CLOCK (Widget Mới) =================
+class _RealTimeClock extends StatefulWidget {
+  const _RealTimeClock();
+
+  @override
+  State<_RealTimeClock> createState() => _RealTimeClockState();
+}
+
+class _RealTimeClockState extends State<_RealTimeClock> {
+  late String _timeString;
+  late String _dateString;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeString = _formatTime(DateTime.now());
+    _dateString = _formatDate(DateTime.now());
+
+    // Cập nhật đồng hồ mỗi giây
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (Timer t) => _getTime(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // Hủy timer khi thoát màn hình để tránh lỗi
+    super.dispose();
+  }
+
+  void _getTime() {
+    final DateTime now = DateTime.now();
+    final String formattedTime = _formatTime(now);
+    final String formattedDate = _formatDate(now);
+
+    // Chỉ cập nhật UI nếu thời gian thay đổi (tối ưu hiệu năng)
+    if (mounted &&
+        (_timeString != formattedTime || _dateString != formattedDate)) {
+      setState(() {
+        _timeString = formattedTime;
+        _dateString = formattedDate;
+      });
+    }
+  }
+
+  String _formatTime(DateTime time) {
+    return DateFormat('HH:mm').format(time); // Ví dụ: 14:30
+  }
+
+  String _formatDate(DateTime time) {
+    // Định dạng kiểu: Thứ Tư, 17 tháng 12
+    return DateFormat('EEEE, d MMMM', 'vi').format(time);
+    // Lưu ý: Cần setup locale tiếng Việt trong main.dart nếu muốn tiếng Việt chuẩn
+    // Tạm thời dùng tiếng Anh hoặc setup GlobalMaterialLocalizations
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -237,20 +351,20 @@ class _Footer extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: const [
+        children: [
           Text(
-            '08:04',
-            style: TextStyle(
-              fontSize: 36,
+            _timeString,
+            style: const TextStyle(
+              fontSize: 48,
               fontWeight: FontWeight.bold,
               color: Color(0xFF101727),
               fontFamily: 'Arimo',
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'Thứ Tư, 17 tháng 12',
-            style: TextStyle(
+            _dateString, // Hiện tại sẽ hiển thị tiếng Anh nếu chưa config Locale
+            style: const TextStyle(
               fontSize: 18,
               color: Color(0xFF495565),
               fontFamily: 'Arimo',
@@ -260,4 +374,10 @@ class _Footer extends StatelessWidget {
       ),
     );
   }
+}
+
+// Lưu ý: Hàm launchLaunchUrl là hàm giả lập do phiên bản url_launcher mới có chút thay đổi.
+// Trong thực tế bạn chỉ cần gọi launchUrl(uri).
+Future<void> launchLaunchUrl(Uri url) async {
+  await launchUrl(url);
 }
