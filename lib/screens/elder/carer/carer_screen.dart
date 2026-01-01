@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../../services/firebase_service.dart';
+import '/services/firebase_service.dart';
 
 class CarerDashboardScreen extends StatelessWidget {
   const CarerDashboardScreen({super.key});

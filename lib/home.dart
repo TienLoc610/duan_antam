@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _hasTakenMedicine = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
+<<<<<<< HEAD
         const SnackBar(
           content: Text('Tuyệt vời! Đã ghi nhận ông/bà đã uống thuốc.'),
         ),
@@ -51,6 +52,13 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (actionType == 'CALL') {
       // Gọi đến số điện thoại con (ví dụ demo)
       _makePhoneCall('0909123456');
+=======
+        const SnackBar(content: Text('Tuyệt vời! Đã ghi nhận ông/bà đã uống thuốc.')),
+      );
+    } else if (actionType == 'CALL') {
+      // Gọi đến số điện thoại con (ví dụ demo)
+      _makePhoneCall('0909123456'); 
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
     }
   }
 
@@ -177,7 +185,14 @@ class _ActionSection extends StatelessWidget {
   final Function(String) onPress;
   final bool isMedicineTaken;
 
+<<<<<<< HEAD
   const _ActionSection({required this.onPress, required this.isMedicineTaken});
+=======
+  const _ActionSection({
+    required this.onPress,
+    required this.isMedicineTaken,
+  });
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
 
   @override
   Widget build(BuildContext context) {
@@ -294,12 +309,18 @@ class _RealTimeClockState extends State<_RealTimeClock> {
     super.initState();
     _timeString = _formatTime(DateTime.now());
     _dateString = _formatDate(DateTime.now());
+<<<<<<< HEAD
 
     // Cập nhật đồng hồ mỗi giây
     _timer = Timer.periodic(
       const Duration(seconds: 1),
       (Timer t) => _getTime(),
     );
+=======
+    
+    // Cập nhật đồng hồ mỗi giây
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) => _getTime());
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
   }
 
   @override
@@ -312,10 +333,16 @@ class _RealTimeClockState extends State<_RealTimeClock> {
     final DateTime now = DateTime.now();
     final String formattedTime = _formatTime(now);
     final String formattedDate = _formatDate(now);
+<<<<<<< HEAD
 
     // Chỉ cập nhật UI nếu thời gian thay đổi (tối ưu hiệu năng)
     if (mounted &&
         (_timeString != formattedTime || _dateString != formattedDate)) {
+=======
+    
+    // Chỉ cập nhật UI nếu thời gian thay đổi (tối ưu hiệu năng)
+    if (mounted && (_timeString != formattedTime || _dateString != formattedDate)) {
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
       setState(() {
         _timeString = formattedTime;
         _dateString = formattedDate;
@@ -329,7 +356,11 @@ class _RealTimeClockState extends State<_RealTimeClock> {
 
   String _formatDate(DateTime time) {
     // Định dạng kiểu: Thứ Tư, 17 tháng 12
+<<<<<<< HEAD
     return DateFormat('EEEE, d MMMM', 'vi').format(time);
+=======
+    return DateFormat('EEEE, d MMMM', 'vi').format(time); 
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
     // Lưu ý: Cần setup locale tiếng Việt trong main.dart nếu muốn tiếng Việt chuẩn
     // Tạm thời dùng tiếng Anh hoặc setup GlobalMaterialLocalizations
   }
@@ -379,5 +410,9 @@ class _RealTimeClockState extends State<_RealTimeClock> {
 // Lưu ý: Hàm launchLaunchUrl là hàm giả lập do phiên bản url_launcher mới có chút thay đổi.
 // Trong thực tế bạn chỉ cần gọi launchUrl(uri).
 Future<void> launchLaunchUrl(Uri url) async {
+<<<<<<< HEAD
   await launchUrl(url);
+=======
+    await launchUrl(url);
+>>>>>>> b99534b51f1bc8d8d1935788c52ce4160b6131d0
 }
