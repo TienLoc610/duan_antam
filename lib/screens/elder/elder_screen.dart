@@ -1,115 +1,314 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../services/firebase_service.dart';
-import '../../widgets/big_button.dart';
 
-class ElderScreen extends StatelessWidget {
+class ElderScreen extends StatefulWidget {
   const ElderScreen({super.key});
 
-  void _callCarer() async {
-    final Uri url = Uri.parse('tel:0909123456');
-    if (await canLaunchUrl(url)) await launchUrl(url);
+  @override
+  State<ElderScreen> createState() => _ElderScreenState();
+}
+
+class _ElderScreenState extends State<ElderScreen> {
+  bool _hasTakenMedicine = false;
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể thực hiện cuộc gọi')),
+      );
+    }
+  }
+
+  void _handleButtonPress(String actionType) {
+    if (actionType == 'SOS') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã gửi cảnh báo SOS đến các con!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } else if (actionType == 'MEDICINE') {
+      setState(() {
+        _hasTakenMedicine = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tuyệt vời! Đã ghi nhận ông/bà đã uống thuốc.')),
+      );
+    } else if (actionType == 'CALL') {
+      _makePhoneCall('0909123456');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('An Tâm - Cha Mẹ'),
-        backgroundColor: const Color(0xFF00A63E),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Khu vực nút bấm lớn
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: BigButton(
-                    label: 'KHẨN CẤP (SOS)',
-                    icon: Icons.warning_amber_rounded,
-                    color: Colors.red,
-                    onTap: () {
-                      FirebaseService.triggerSOS(true);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã gửi báo động SOS!')),
-                      );
-                      _callCarer();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: BigButton(
-                    label: 'GỌI CON',
-                    icon: Icons.phone,
-                    color: Colors.blue,
-                    onTap: _callCarer,
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF0FDF4), Color(0xFFEEF5FE)],
           ),
-          const Divider(thickness: 2),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Lịch Hôm Nay',
-              style: TextStyle(fontSize: 24, color: Colors.grey[700], fontWeight: FontWeight.bold),
-            ),
-          ),
-          // Danh sách công việc
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseService.tasksRef.orderBy('time').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                var tasks = snapshot.data!.docs;
-                if (tasks.isEmpty) return const Center(child: Text("Hôm nay không có lịch."));
-
-                return ListView.builder(
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    var task = tasks[index];
-                    bool isTaken = task['isTaken'] ?? false;
-                    
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      color: isTaken ? Colors.green[50] : Colors.white,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: Icon(
-                          isTaken ? Icons.check_circle : Icons.medication,
-                          size: 48,
-                          color: isTaken ? Colors.green : Colors.orange,
-                        ),
-                        title: Text(
-                          task['title'],
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            decoration: isTaken ? TextDecoration.lineThrough : null,
-                            color: isTaken ? Colors.grey : Colors.black,
-                          ),
-                        ),
-                        subtitle: Text('Giờ uống: ${task['time']}', style: const TextStyle(fontSize: 18)),
-                        trailing: isTaken
-                            ? const Icon(Icons.check, color: Colors.green, size: 40)
-                            : ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C850)),
-                                onPressed: () => FirebaseService.completeTask(task.id),
-                                child: const Text('XÁC NHẬN'),
-                              ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _Header(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _Banner(),
+                      const SizedBox(height: 24),
+                      _ActionSection(
+                        onPress: _handleButtonPress,
+                        isMedicineTaken: _hasTakenMedicine,
                       ),
-                    );
-                  },
-                );
-              },
+                      const SizedBox(height: 24),
+                      const _RealTimeClock(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- CÁC WIDGET CON (Header, Banner, ActionCard, Clock) ---
+
+class _Header extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      color: const Color(0xFF00A63E),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const Text(
+            'An Tâm - Cha Mẹ',
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const Icon(Icons.settings, color: Colors.white),
+        ],
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 250,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            'https://placehold.co/600x400',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[300],
+              child: const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
             ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: Colors.black.withOpacity(0.5),
+              child: const Text(
+                'Ảnh gia đình sum họp',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionSection extends StatelessWidget {
+  final Function(String) onPress;
+  final bool isMedicineTaken;
+
+  const _ActionSection({required this.onPress, required this.isMedicineTaken});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          _ActionCard(
+            color: const Color(0xFFE7000B),
+            icon: Icons.warning_amber_rounded,
+            title: 'KHẨN CẤP',
+            subtitle: 'Bấm khi gặp nguy hiểm',
+            onTap: () => onPress('SOS'),
+          ),
+          const SizedBox(height: 16),
+          _ActionCard(
+            color: isMedicineTaken ? Colors.grey : const Color(0xFF00C850),
+            icon: isMedicineTaken ? Icons.check : Icons.check_circle_outline,
+            title: isMedicineTaken ? 'ĐÃ UỐNG XONG' : 'UỐNG THUỐC',
+            subtitle: isMedicineTaken ? 'Hôm nay ông/bà đã uống rồi' : 'Bấm sau khi uống thuốc',
+            onTap: isMedicineTaken ? null : () => onPress('MEDICINE'),
+          ),
+          const SizedBox(height: 16),
+          _ActionCard(
+            color: const Color(0xFF155DFC),
+            icon: Icons.phone_in_talk,
+            title: 'GỌI CON',
+            subtitle: 'Bấm để gọi ngay cho con',
+            onTap: () => onPress('CALL'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  const _ActionCard({
+    required this.color,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(24),
+      elevation: onTap == null ? 0 : 8,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            children: [
+              Icon(icon, size: 64, color: Colors.white),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RealTimeClock extends StatefulWidget {
+  const _RealTimeClock();
+  @override
+  State<_RealTimeClock> createState() => _RealTimeClockState();
+}
+
+class _RealTimeClockState extends State<_RealTimeClock> {
+  late String _timeString;
+  late String _dateString;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeString = _formatTime(DateTime.now());
+    _dateString = _formatDate(DateTime.now());
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) => _getTime());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _getTime() {
+    final DateTime now = DateTime.now();
+    final String formattedTime = _formatTime(now);
+    final String formattedDate = _formatDate(now);
+    if (mounted && (_timeString != formattedTime || _dateString != formattedDate)) {
+      setState(() {
+        _timeString = formattedTime;
+        _dateString = formattedDate;
+      });
+    }
+  }
+
+  String _formatTime(DateTime time) => DateFormat('HH:mm').format(time);
+  String _formatDate(DateTime time) => DateFormat('EEEE, d MMMM').format(time);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            _timeString,
+            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Color(0xFF101727)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _dateString,
+            style: const TextStyle(fontSize: 18, color: Color(0xFF495565)),
           ),
         ],
       ),

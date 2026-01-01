@@ -16,7 +16,6 @@ class FeatureListWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: features.map((feature) {
         return Padding(
@@ -29,12 +28,10 @@ class FeatureListWidget extends StatelessWidget {
                 style: TextStyle(
                   color: checkColor,
                   fontSize: 16,
-                  fontFamily: 'Arimo',
-                  fontWeight: FontWeight.w400,
-                  height: 1.50,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(width: 8.0),
+              const SizedBox(width: 8.0),
               Flexible(
                 child: Text(
                   feature,
@@ -42,8 +39,6 @@ class FeatureListWidget extends StatelessWidget {
                     color: textColor,
                     fontSize: 16,
                     fontFamily: 'Arimo',
-                    fontWeight: FontWeight.w400,
-                    height: 1.50,
                   ),
                 ),
               ),
