@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'elder/elder_screen.dart';
-import 'elder/carer/carer_screen.dart';
+import 'carer/carer_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
