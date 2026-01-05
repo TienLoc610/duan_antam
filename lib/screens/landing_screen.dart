@@ -1,36 +1,39 @@
 import 'package:flutter/material.dart';
-import '../widgets/feature_list_widget.dart'; // Import đúng đường dẫn widget
+import '../widgets/feature_list_widget.dart'; // Đảm bảo đường dẫn này đúng với project của bạn
 
 class AnTamHomeScreen extends StatelessWidget {
+  const AnTamHomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final double screenWidth = constraints.maxWidth;
-          return SingleChildScrollView(
-            child: Container(
-              width: screenWidth,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment(0.00, 0.00),
-                  end: Alignment(1.00, 1.00),
-                  colors: [Color(0xFFEEF5FE), Color(0xFFF0FDF4)],
-                ),
+          
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF0FDF4), Color(0xFFEEF5FE)],
               ),
+            ),
+            child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: <Widget>[
-                    const SizedBox(height: 64),
+                    const SizedBox(height: 40),
                     _buildHeader(),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 40),
                     _buildAnTamConCard(context, screenWidth),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 30), // Giảm khoảng cách giữa 2 card
                     _buildAnTamChaMeCard(context, screenWidth),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 50),
                     _buildFooter(),
-                    const SizedBox(height: 64),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -44,26 +47,31 @@ class AnTamHomeScreen extends StatelessWidget {
   Widget _buildHeader() {
     return Column(
       children: const <Widget>[
+        // Thêm Icon đại diện cho Logo
+        Icon(Icons.family_restroom, size: 80, color: Color(0xFF155CFB)),
+        SizedBox(height: 16),
         Text(
           'Hệ thống An Tâm',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xFF155CFB),
-            fontSize: 24,
+            fontSize: 28, // Tăng kích thước chữ
             fontFamily: 'Arimo',
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.bold, // Chữ đậm hơn
+            letterSpacing: 1.0,
           ),
         ),
-        SizedBox(height: 16),
+        SizedBox(height: 12),
         SizedBox(
-          width: 328,
+          width: 350,
           child: Text(
-            'Kết nối yêu thương giữa con cái và cha mẹ lớn tuổi. Giúp người con an tâm khi ở xa, giúp cha mẹ độc lập và được chăm sóc tốt hơn.',
+            'Kết nối yêu thương - An tâm phụng dưỡng',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF495565),
               fontSize: 16,
               fontFamily: 'Arimo',
+              fontStyle: FontStyle.italic,
             ),
           ),
         ),
@@ -72,78 +80,61 @@ class AnTamHomeScreen extends StatelessWidget {
   }
 
   Widget _buildAnTamConCard(BuildContext context, double screenWidth) {
-    final double cardWidth = screenWidth > 600 ? 500 : screenWidth - 32;
+    // Tự động điều chỉnh độ rộng card, tối đa 500
+    final double cardWidth = screenWidth > 600 ? 500 : double.infinity;
 
     return Container(
       width: cardWidth,
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(30), // Bo tròn nhiều hơn
+        border: Border.all(color: const Color(0xFFDBEAFE), width: 1), // Viền nhẹ
+        boxShadow: [
           BoxShadow(
-            color: Color(0x19000000),
-            blurRadius: 25,
-            offset: Offset(0, 20),
+            color: const Color(0xFF155CFB).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDBEAFE),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(child: Icon(Icons.favorite_border, color: Color(0xFF155CFB))),
+          const CircleAvatar(
+            radius: 35,
+            backgroundColor: Color(0xFFDBEAFE),
+            child: Icon(Icons.favorite, color: Color(0xFF155CFB), size: 35),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           const Text(
             'An Tâm - Con',
             style: TextStyle(
               color: Color(0xFF1347E5),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
               fontFamily: 'Arimo',
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Dành cho người chăm sóc. Lên lịch, theo dõi và nhận cảnh báo về tình trạng cha mẹ.',
-            style: TextStyle(color: Color(0xFF495565), fontSize: 16, fontFamily: 'Arimo'),
+            'Dành cho người chăm sóc',
+            style: TextStyle(color: Colors.grey, fontSize: 14, fontFamily: 'Arimo'),
           ),
-          const SizedBox(height: 24),
+          const Divider(height: 30, thickness: 1, color: Color(0xFFF1F5F9)),
           const FeatureListWidget(
             features: [
               'Tạo lịch uống thuốc & lịch hẹn',
-              'Dashboard theo dõi trạng thái',
               'Nhận cảnh báo & thông báo SOS',
               'Chia sẻ ảnh gia đình',
             ],
             checkColor: Color(0xFF2B7FFF),
           ),
-          const SizedBox(height: 48),
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).pushNamed('/con-dashboard');
-            },
-            child: Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFF155DFC),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Center(
-                child: Text(
-                  'Mở ứng dụng "Con"',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+          const SizedBox(height: 24),
+          _buildActionButton(
+            context,
+            label: 'Mở ứng dụng "Con"',
+            color: const Color(0xFF155DFC),
+            route: '/con-dashboard',
           ),
         ],
       ),
@@ -151,80 +142,90 @@ class AnTamHomeScreen extends StatelessWidget {
   }
 
   Widget _buildAnTamChaMeCard(BuildContext context, double screenWidth) {
-    final double cardWidth = screenWidth > 600 ? 500 : screenWidth - 32;
+    final double cardWidth = screenWidth > 600 ? 500 : double.infinity;
 
     return Container(
       width: cardWidth,
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFDCFCE7), width: 1),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x19000000),
-            blurRadius: 25,
-            offset: Offset(0, 20),
+            color: const Color(0xFF00A63E).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(child: Icon(Icons.healing, color: Color(0xFF008235))),
+          const CircleAvatar(
+            radius: 35,
+            backgroundColor: Color(0xFFDCFCE7),
+            child: Icon(Icons.healing, color: Color(0xFF008235), size: 35),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           const Text(
             'An Tâm - Cha Mẹ',
             style: TextStyle(
               color: Color(0xFF008235),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
               fontFamily: 'Arimo',
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Dành cho người cao tuổi. Giao diện cực kỳ đơn giản với các nút bấm lớn.',
-            style: TextStyle(color: Color(0xFF495565), fontSize: 16, fontFamily: 'Arimo'),
+            'Dành cho người cao tuổi',
+            style: TextStyle(color: Colors.grey, fontSize: 14, fontFamily: 'Arimo'),
           ),
-          const SizedBox(height: 24),
+          const Divider(height: 30, thickness: 1, color: Color(0xFFF1F5F9)),
           const FeatureListWidget(
             features: [
-              'Nút SOS khẩn cấp',
-              'Check-in đơn giản khi uống thuốc',
-              'Gọi con khi cần',
-              'Xem ảnh gia đình',
+              'Nút SOS khẩn cấp to rõ',
+              'Check-in uống thuốc đơn giản',
+              'Xem ảnh con cháu',
             ],
             checkColor: Color(0xFF00C850),
           ),
-          const SizedBox(height: 48),
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).pushNamed('/chame-dashboard');
-            },
-            child: Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00A63E),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Center(
-                child: Text(
-                  'Mở ứng dụng "Cha Mẹ"',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+          const SizedBox(height: 24),
+          _buildActionButton(
+            context,
+            label: 'Mở ứng dụng "Cha Mẹ"',
+            color: const Color(0xFF00A63E),
+            route: '/chame-dashboard', // Route phải khớp với main.dart
           ),
         ],
+      ),
+    );
+  }
+
+  // Widget nút bấm dùng chung để code gọn hơn
+  Widget _buildActionButton(BuildContext context, {required String label, required Color color, required String route}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: () => Navigator.of(context).pushNamed(route),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 5,
+          shadowColor: color.withOpacity(0.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontFamily: 'Arimo',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -232,11 +233,16 @@ class AnTamHomeScreen extends StatelessWidget {
   Widget _buildFooter() {
     return const Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.0),
+        padding: EdgeInsets.symmetric(horizontal: 20.0),
         child: Text(
-          '💙 Xây dựng cầu nối yêu thương, mang lại sự an tâm cho gia đình Việt',
+          '💙 Xây dựng cầu nối yêu thương cho gia đình Việt',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF697282), fontSize: 16, fontFamily: 'Arimo'),
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontFamily: 'Arimo',
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ),
     );
