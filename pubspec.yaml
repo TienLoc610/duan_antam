@@ -4,19 +4,26 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.0
+  sdk: '>=3.2.3 <4.0.0' # Đã nâng version tối thiểu để tương thích thư viện mới
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # --- CÁC THƯ VIỆN ĐÃ CẬP NHẬT (FIX LỖI) ---
+  firebase_core: ^3.0.0        # Cập nhật mới nhất để sửa lỗi Web
+  cloud_firestore: ^5.0.0      # Cập nhật mới nhất
+  firebase_storage: ^12.0.0    # Cập nhật mới nhất
+  firebase_auth: ^5.1.0       # Cập nhật mới nhất
+
+  url_launcher: ^6.2.1         # Gọi điện
+  intl: ^0.19.0                # Định dạng ngày
   
-  # --- CÁC THƯ VIỆN ĐÃ THÊM MỚI ---
-  firebase_core: ^2.24.2       # Cốt lõi để chạy Firebase
-  cloud_firestore: ^4.14.0     # Cơ sở dữ liệu lưu lịch thuốc
-  url_launcher: ^6.2.1         # Để thực hiện gọi điện thoại
-  intl: ^0.19.0       
-  image_picker: ^1.0.4         # Để chọn hình ảnh từ thư viện
-  # ------------------------------
+  image_picker: ^1.1.0         # Chọn ảnh (Bản mới ổn định hơn)
+  cached_network_image: ^3.3.1 # Hiển thị ảnh
+  
+  # QUAN TRỌNG: Bản 5.0.0 đã sửa lỗi xung đột tên "CarouselController"
+  carousel_slider: ^5.0.0      
 
   cupertino_icons: ^1.0.8
 
@@ -27,5 +34,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # fonts: 
-  #   - family: Arimo ... (Nếu bạn đã tải font thì bỏ comment phần này)
+  
+  # Nếu bạn dùng font Arimo, hãy bỏ comment dòng dưới và đảm bảo có file font
+  # fonts:
+  #   - family: Arimo
+  #     fonts:
+  #       - asset: assets/fonts/Arimo-Regular.ttf
+  #       - asset: assets/fonts/Arimo-Bold.ttf

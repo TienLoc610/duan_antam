@@ -1,30 +1,29 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// Import file main của dự án
 import 'package:duan_antam/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Kiểm tra màn hình Chào mừng (Onboarding) hiển thị đúng', (WidgetTester tester) async {
+    // 1. Khởi chạy ứng dụng (Sử dụng AnTamApp thay vì MyApp)
+    await tester.pumpWidget(const AnTamApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // 2. Chờ cho các animation hoặc render hoàn tất
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // 3. Kiểm tra xem các văn bản quan trọng có xuất hiện không
+    // Tìm tiêu đề chính
+    expect(find.text('Hệ thống An Tâm'), findsOneWidget);
 
-    // Verify that our counter has incremented.
+    // Tìm thẻ chọn vai trò "Con"
+    expect(find.text('An Tâm - Con'), findsOneWidget);
+
+    // Tìm thẻ chọn vai trò "Cha Mẹ"
+    expect(find.text('An Tâm - Cha Mẹ'), findsOneWidget);
+
+    // 4. Kiểm tra các thành phần cũ của Counter App KHÔNG TỒN TẠI
     expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsNothing);
   });
 }

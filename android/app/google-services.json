@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "490528778312",
+    "project_id": "antam-de662",
+    "storage_bucket": "antam-de662.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:490528778312:android:d072e0c39f812452b7907d",
+        "android_client_info": {
+          "package_name": "com.example.duan_antam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcYztcwR-Lqryfqrz2tEQmi2O3stZ10mM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

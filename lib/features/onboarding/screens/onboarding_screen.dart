@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+// 1. Import Widget tiện ích (Đảm bảo đường dẫn đúng)
+import '../widgets/feature_list_widget.dart'; 
+
+// 2. Import màn hình Auth để điều hướng (Sửa đường dẫn nếu cần)
+import '../../auth/screens/auth_screen.dart'; 
+
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
@@ -13,7 +19,8 @@ class OnboardingScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEEF5FE), Color(0xFFF0FDF4)], // Màu nền gradient gốc
+            // Màu nền Gradient nhẹ nhàng
+            colors: [Color(0xFFEEF5FE), Color(0xFFF0FDF4)],
           ),
         ),
         child: SafeArea(
@@ -25,7 +32,7 @@ class OnboardingScreen extends StatelessWidget {
                 _buildHeader(),
                 const SizedBox(height: 40),
                 
-                // Card An Tâm - Con (Màu Xanh Dương)
+                // --- CARD 1: DÀNH CHO CON ---
                 _buildRoleCard(
                   context,
                   title: 'An Tâm - Con',
@@ -39,17 +46,23 @@ class OnboardingScreen extends StatelessWidget {
                     'Chia sẻ ảnh gia đình',
                   ],
                   buttonLabel: 'Mở ứng dụng "Con"',
-                  onTap: () => Navigator.pushNamed(context, '/login'),
+                  // Điều hướng sang Đăng nhập với vai trò CON (isCarer = true)
+                  onTap: () => Navigator.push(
+                    context, 
+                    MaterialPageRoute(
+                      builder: (context) => const AuthScreen(isLogin: true, isCarer: true)
+                    )
+                  ),
                 ),
 
                 const SizedBox(height: 30),
 
-                // Card An Tâm - Cha Mẹ (Màu Xanh Lá)
+                // --- CARD 2: DÀNH CHO CHA MẸ ---
                 _buildRoleCard(
                   context,
                   title: 'An Tâm - Cha Mẹ',
                   subtitle: 'Dành cho người cao tuổi. Giao diện đơn giản, nút bấm lớn.',
-                  iconData: Icons.volunteer_activism, // Icon trái tim trên tay (giống healing)
+                  iconData: Icons.volunteer_activism, 
                   themeColor: const Color(0xFF00A63E), // Xanh lá
                   features: [
                     'Nút SOS khẩn cấp',
@@ -58,7 +71,13 @@ class OnboardingScreen extends StatelessWidget {
                     'Xem ảnh gia đình',
                   ],
                   buttonLabel: 'Mở ứng dụng "Cha Mẹ"',
-                  onTap: () => Navigator.pushNamed(context, '/parent_home'),
+                  // Điều hướng sang Đăng nhập với vai trò CHA MẸ (isCarer = false)
+                  onTap: () => Navigator.push(
+                    context, 
+                    MaterialPageRoute(
+                      builder: (context) => const AuthScreen(isLogin: true, isCarer: false)
+                    )
+                  ),
                 ),
 
                 const SizedBox(height: 40),
@@ -72,11 +91,10 @@ class OnboardingScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Header: Logo và Tiêu đề ---
+  // --- Widget Header ---
   Widget _buildHeader() {
     return Column(
       children: const [
-        // Logo giả lập (Icon trong khung bo tròn)
         CircleAvatar(
           radius: 30,
           backgroundColor: Color(0xFF00A63E),
@@ -94,21 +112,24 @@ class OnboardingScreen extends StatelessWidget {
           ),
         ),
         SizedBox(height: 12),
-        Text(
-          'Kết nối yêu thương giữa con cái và cha mẹ lớn tuổi.\nGiúp người con an tâm, giúp cha mẹ được quan tâm.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF495565),
-            fontFamily: 'Arimo',
-            height: 1.5,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Kết nối yêu thương giữa con cái và cha mẹ lớn tuổi.\nGiúp người con an tâm, giúp cha mẹ được quan tâm.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF495565),
+              fontFamily: 'Arimo',
+              height: 1.5,
+            ),
           ),
         ),
       ],
     );
   }
 
-  // --- Widget Card Vai Trò (Dùng chung cho cả Con và Cha Mẹ) ---
+  // --- Widget Card Vai Trò ---
   Widget _buildRoleCard(
     BuildContext context, {
     required String title,
@@ -134,7 +155,7 @@ class OnboardingScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Icon đại diện
+          // Icon tròn màu nhạt
           Container(
             width: 64,
             height: 64,
@@ -145,6 +166,7 @@ class OnboardingScreen extends StatelessWidget {
             child: Icon(iconData, color: themeColor, size: 32),
           ),
           const SizedBox(height: 16),
+          
           // Tiêu đề
           Text(
             title,
@@ -156,6 +178,8 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          
+          // Mô tả ngắn
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -166,28 +190,16 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // Danh sách tính năng
-          ...features.map((feature) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.check, size: 20, color: themeColor),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: Color(0xFF354152),
-                          fontFamily: 'Arimo',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
+
+          // Feature List Widget
+          FeatureListWidget(
+            features: features,
+            checkColor: themeColor,
+          ),
+          
           const SizedBox(height: 24),
-          // Nút bấm
+          
+          // Nút bấm hành động
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -216,16 +228,18 @@ class OnboardingScreen extends StatelessWidget {
     );
   }
 
-  // --- Footer ---
   Widget _buildFooter() {
-    return const Text(
-      '💙 Xây dựng cầu nối yêu thương, mang lại sự an tâm cho gia đình Việt',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 14,
-        color: Color(0xFF697282),
-        fontFamily: 'Arimo',
-        fontStyle: FontStyle.italic,
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        '💙 Xây dựng cầu nối yêu thương, mang lại sự an tâm cho gia đình Việt',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          color: Color(0xFF697282),
+          fontFamily: 'Arimo',
+          fontStyle: FontStyle.italic,
+        ),
       ),
     );
   }
