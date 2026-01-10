@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-// 1. Import Widget tiện ích (Đảm bảo đường dẫn đúng)
 import '../widgets/feature_list_widget.dart'; 
 
-// 2. Import màn hình Auth để điều hướng (Sửa đường dẫn nếu cần)
 import '../../auth/screens/auth_screen.dart'; 
 
 class OnboardingScreen extends StatelessWidget {

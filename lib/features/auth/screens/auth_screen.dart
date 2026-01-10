@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'link_family_screen.dart'; // Đảm bảo file này nằm cùng thư mục
+import 'link_family_screen.dart'; 
 
 class AuthScreen extends StatefulWidget {
   final bool isLogin;
@@ -37,7 +37,6 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
-    // Mẹo: Số điện thoại -> Email
     final email = "$phone@antam.com"; 
 
     setState(() => _isLoading = true);

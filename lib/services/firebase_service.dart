@@ -15,7 +15,35 @@ class FirebaseService {
   // 1. QUẢN LÝ GIA ĐÌNH & SINH DỮ LIỆU MẪU
   // ==========================================
 
-  // Hàm tạo gia đình mới (Dành cho CON)
+  // [MỚI THÊM] Hàm kiểm tra xem đã có gia đình chưa, nếu có thì trả về mã cũ, chưa thì tạo mới
+  static Future<String> getOrCreateFamily(String role, String name) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception("Chưa đăng nhập");
+
+    // 1. Kiểm tra trong Firestore xem User này đã tồn tại và có mã gia đình chưa
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection(colUsers)
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists) {
+      Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
+      // Nếu đã có trường familyId và nó không rỗng -> Trả về mã cũ
+      if (data != null &&
+          data.containsKey('familyId') &&
+          data['familyId'] != null) {
+        String existingCode = data['familyId'];
+        if (existingCode.isNotEmpty) {
+          return existingCode;
+        }
+      }
+    }
+
+    // 2. Nếu chưa có -> Gọi hàm tạo mới bên dưới
+    return await createFamilyGroup(role, name);
+  }
+
+  // Hàm tạo gia đình mới (Dành cho CON) - GIỮ NGUYÊN
   static Future<String> createFamilyGroup(String role, String name) async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception("Chưa đăng nhập Firebase Auth");
@@ -39,7 +67,7 @@ class FirebaseService {
     return familyId;
   }
 
-  // Hàm tham gia gia đình (Dành cho CHA MẸ)
+  // Hàm tham gia gia đình (Dành cho CHA MẸ) - GIỮ NGUYÊN
   static Future<void> joinFamilyGroup(String familyCode, String name) async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception("Chưa đăng nhập");
@@ -47,9 +75,6 @@ class FirebaseService {
     // Chuẩn hóa mã (chữ hoa, bỏ khoảng trắng)
     String cleanCode = familyCode.toUpperCase().trim();
 
-    // (Tùy chọn) Kiểm tra mã có tồn tại không trước khi join
-    // Ở đây ta cho phép join thẳng để đơn giản hóa
-    
     await FirebaseFirestore.instance.collection(colUsers).doc(user.uid).set({
       'uid': user.uid,
       'fullName': name,
@@ -60,7 +85,7 @@ class FirebaseService {
     });
   }
 
-  // Hàm nội bộ: Sinh dữ liệu mẫu
+  // Hàm nội bộ: Sinh dữ liệu mẫu - GIỮ NGUYÊN
   static Future<void> _generateSampleData(String familyId) async {
     final batch = FirebaseFirestore.instance.batch();
     final collection = FirebaseFirestore.instance.collection(colTasks);
@@ -101,13 +126,16 @@ class FirebaseService {
     await batch.commit(); // Thực hiện lưu tất cả cùng lúc
   }
 
-  // Lấy Mã Gia Đình hiện tại
+  // Lấy Mã Gia Đình hiện tại - GIỮ NGUYÊN
   static Future<String?> getCurrentFamilyId() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
 
     // Cache nhẹ hoặc lấy từ Firestore
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection(colUsers).doc(user.uid).get();
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection(colUsers)
+        .doc(user.uid)
+        .get();
     if (doc.exists && doc.data() != null) {
       return (doc.data() as Map<String, dynamic>)['familyId'] as String?;
     }
@@ -115,7 +143,7 @@ class FirebaseService {
   }
 
   // ==========================================
-  // 2. QUẢN LÝ TÁC VỤ (CÓ LỌC THEO GIA ĐÌNH)
+  // 2. QUẢN LÝ TÁC VỤ (CÓ LỌC THEO GIA ĐÌNH) - GIỮ NGUYÊN
   // ==========================================
 
   static Stream<QuerySnapshot> getTasksStream() async* {
@@ -142,7 +170,10 @@ class FirebaseService {
   }
 
   static Future<void> updateTaskStatus(String id, bool isCompleted) async {
-    await FirebaseFirestore.instance.collection(colTasks).doc(id).update({'isCompleted': isCompleted});
+    await FirebaseFirestore.instance
+        .collection(colTasks)
+        .doc(id)
+        .update({'isCompleted': isCompleted});
   }
 
   static Future<void> updateTask(String id, Map<String, dynamic> data) async {
@@ -154,7 +185,7 @@ class FirebaseService {
   }
 
   // ==========================================
-  // 3. QUẢN LÝ SOS & ẢNH (CÓ LỌC THEO GIA ĐÌNH)
+  // 3. QUẢN LÝ SOS & ẢNH (CÓ LỌC THEO GIA ĐÌNH) - GIỮ NGUYÊN
   // ==========================================
 
   static Stream<QuerySnapshot> getAlertsStream() async* {
@@ -189,8 +220,9 @@ class FirebaseService {
       if (familyId == null) throw Exception("Chưa có mã gia đình");
 
       String fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      Reference ref = FirebaseStorage.instance.ref().child('family_photos/$fileName');
-      
+      Reference ref =
+          FirebaseStorage.instance.ref().child('family_photos/$fileName');
+
       await ref.putData(data, SettableMetadata(contentType: 'image/jpeg'));
       String downloadUrl = await ref.getDownloadURL();
 
@@ -213,5 +245,25 @@ class FirebaseService {
           .orderBy('uploadedAt', descending: true)
           .snapshots();
     }
+  }
+
+  // --- TÍNH NĂNG GỌI CON (FR2.4) ---
+  static Future<void> sendCallRequest() async {
+    String? familyId = await getCurrentFamilyId();
+    if (familyId == null) return;
+
+    User? user = FirebaseAuth.instance.currentUser;
+    // Lấy tên người đang dùng (nếu có lưu trong UserProfile thì query lấy ra, ở đây tạm dùng tên mặc định)
+    String name = user?.displayName ?? "Cha/Mẹ";
+
+    await FirebaseFirestore.instance.collection(colAlerts).add({
+      'type':
+          'call_request', // Đánh dấu đây là yêu cầu gọi lại (không phải SOS)
+      'familyId': familyId,
+      'title': 'Nhắn gọi lại',
+      'message': '$name muốn con gọi lại khi rảnh nhé!',
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
   }
 }

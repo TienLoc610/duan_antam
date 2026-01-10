@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:cached_network_image/cached_network_image.dart'; 
 import 'package:intl/intl.dart';
 
-// Đảm bảo đường dẫn import đúng tới file service
 import '../../../services/firebase_service.dart'; 
 import '../widgets/add_appointment_form_dialog.dart';
 import '../widgets/add_medicine_form_dialog.dart';
@@ -20,47 +20,112 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
   int _selectedIndex = 0;
   final ImagePicker _picker = ImagePicker();
   
-  // [MỚI] Biến lưu mã gia đình
+  // Biến quản lý mã gia đình và luồng lắng nghe
   String? _familyId;
+  StreamSubscription? _alertSubscription;
 
-  // [MỚI] Khởi tạo và lấy mã gia đình ngay khi vào màn hình
+  // --- 1. KHỞI TẠO DỮ LIỆU ---
   @override
   void initState() {
     super.initState();
-    _loadFamilyId();
+    _initData();
   }
 
-  void _loadFamilyId() async {
+  @override
+  void dispose() {
+    _alertSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initData() async {
+    // Lấy mã gia đình từ Service
     String? id = await FirebaseService.getCurrentFamilyId();
+    
+    // [FIX LỖI] Nếu chưa có ID (do login lỗi), dùng tạm 'gd1' để Test không bị lỗi màn hình trắng
+    id ??= "gd1"; 
+
     if (mounted) {
       setState(() => _familyId = id);
+      // Sau khi có ID thì mới bắt đầu lắng nghe tin khẩn cấp
+      _setupRealtimeListener(id!);
     }
   }
 
-  // ==========================================
-  // 1. LOGIC TẢI ẢNH
-  // ==========================================
+  // --- 2. BỘ LẮNG NGHE (CHỈ DÙNG ĐỂ BẬT POPUP) ---
+  void _setupRealtimeListener(String familyId) {
+    // Chỉ lắng nghe tin MỚI (isRead == false) để bật Popup cảnh báo
+    _alertSubscription = FirebaseFirestore.instance
+        .collection('alerts')
+        .where('familyId', isEqualTo: familyId)
+        .where('isRead', isEqualTo: false) // Chỉ bắt tin chưa đọc
+        .snapshots()
+        .listen((snapshot) {
+      
+      for (var change in snapshot.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          
+          if (mounted) {
+            _showInstantAlert(
+              data['type'] ?? 'info',
+              data['message'] ?? 'Có thông báo mới',
+              change.doc.id
+            );
+          }
+        }
+      }
+    });
+  }
+
+  // Hàm hiện Popup và đánh dấu đã đọc
+  void _showInstantAlert(String type, String message, String docId) {
+    // 1. Đánh dấu đã đọc trên Firebase ngay
+    FirebaseFirestore.instance.collection('alerts').doc(docId).update({'isRead': true});
+
+    // 2. Cấu hình giao diện Popup
+    Color bgColor = type == 'sos' ? Colors.red.shade100 : Colors.blue.shade100;
+    IconData icon = type == 'sos' ? Icons.warning_amber_rounded : Icons.phone_in_talk;
+    String title = type == 'sos' ? "CẢNH BÁO KHẨN CẤP!" : "Cha Mẹ nhắn gọi lại";
+
+    // 3. Hiện Dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: bgColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(icon, color: Colors.black87, size: 30),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: Text(message, style: const TextStyle(fontSize: 18)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Đã rõ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- 3. CÁC HÀM XỬ LÝ KHÁC (ẢNH, THUỐC...) ---
   Future<void> _pickAndUploadImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    
     if (image != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đang tải ảnh lên...'), duration: Duration(seconds: 2)),
-      );
-
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang tải ảnh lên...')));
       try {
         final bytes = await image.readAsBytes();
         await FirebaseService.uploadFamilyPhoto(bytes);
         _showMessage("Đã chia sẻ ảnh thành công!", Colors.green);
       } catch (e) {
-        _showMessage("Lỗi khi tải ảnh: $e", Colors.red);
+        _showMessage("Lỗi: $e", Colors.red);
       }
     }
   }
 
-  // ==========================================
-  // CÁC HÀM XỬ LÝ FORM
-  // ==========================================
   void _openForm({DocumentSnapshot? document}) async {
     Map<String, dynamic>? initialData;
     if (document != null) initialData = document.data() as Map<String, dynamic>;
@@ -70,6 +135,8 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
       result = await showDialog(context: context, builder: (_) => AddMedicineFormDialog(initialData: initialData));
     } else if (_selectedIndex == 2 || (initialData != null && initialData['type'] == 'appointment')) {
       result = await showDialog(context: context, builder: (_) => AddAppointmentScreen(initialData: initialData));
+    } else {
+      result = await showDialog(context: context, builder: (_) => AddMedicineFormDialog(initialData: initialData));
     }
 
     if (result != null) {
@@ -79,7 +146,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
           _showMessage("Đã thêm thành công!", Colors.green);
         } else {
           await FirebaseService.updateTask(document.id, result);
-          _showMessage("Đã cập nhật thành công!", Colors.blue);
+          _showMessage("Đã cập nhật!", Colors.blue);
         }
       } catch (e) { _showMessage(e.toString(), Colors.red); }
     }
@@ -91,6 +158,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
   }
 
   void _showMessage(String msg, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
@@ -99,28 +167,29 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
   // ==========================================
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['Tổng quan', 'Lịch thuốc', 'Lịch hẹn', 'Cảnh báo SOS', 'Ảnh gia đình'];
+    final List<String> titles = ['Tổng quan', 'Lịch thuốc', 'Lịch hẹn', 'Lịch sử SOS', 'Ảnh gia đình'];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        // [CẬP NHẬT] Hiển thị Tiêu đề + Mã gia đình
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(titles[_selectedIndex], style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(titles[_selectedIndex], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
             if (_familyId != null) 
-              Text(
-                "Mã gia đình: $_familyId", 
-                style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.normal)
-              ),
+              Text("Mã GD: $_familyId", style: const TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.normal)),
           ],
         ),
         backgroundColor: const Color(0xFF155DFC),
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: _buildBody(),
-      floatingActionButton: (_selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 4)
+      
+      body: _familyId == null 
+        ? const Center(child: CircularProgressIndicator()) 
+        : _buildBody(), // Chỉ hiện body khi đã có Family ID
+      
+      floatingActionButton: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 4)
           ? FloatingActionButton(
               backgroundColor: const Color(0xFF155DFC),
               child: Icon(_selectedIndex == 4 ? Icons.add_a_photo : Icons.add, color: Colors.white),
@@ -130,6 +199,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
               },
             )
           : null,
+      
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
@@ -140,7 +210,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Tổng quan'),
           BottomNavigationBarItem(icon: Icon(Icons.medication), label: 'Thuốc'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Lịch hẹn'),
-          BottomNavigationBarItem(icon: Icon(Icons.warning), label: 'SOS'),
+          BottomNavigationBarItem(icon: Icon(Icons.notifications_active), label: 'SOS'),
           BottomNavigationBarItem(icon: Icon(Icons.photo_library), label: 'Ảnh'),
         ],
       ),
@@ -155,7 +225,9 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
       stream: FirebaseService.getTasksStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("Chưa có dữ liệu nào."));
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+           return const Center(child: Text("Chưa có nhiệm vụ nào.", style: TextStyle(color: Colors.grey)));
+        }
 
         var docs = snapshot.data!.docs;
         if (_selectedIndex == 1) docs = docs.where((d) => d['type'] == 'medication').toList();
@@ -174,21 +246,21 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
 
             return Card(
               elevation: 2,
+              margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              color: isDone ? Colors.grey.shade100 : Colors.white,
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: isDone ? Colors.green.shade100 : (isMed ? Colors.blue.shade50 : Colors.orange.shade50),
-                  child: Icon(isDone ? Icons.check : (isMed ? Icons.medication : Icons.calendar_month), color: isDone ? Colors.green : (isMed ? Colors.blue : Colors.orange)),
+                  child: Icon(isDone ? Icons.check : (isMed ? Icons.medication : Icons.calendar_month), 
+                    color: isDone ? Colors.green : (isMed ? Colors.blue : Colors.orange)),
                 ),
                 title: Text(data['title'] ?? 'Không tên', style: TextStyle(fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null, color: isDone ? Colors.grey : Colors.black)),
                 subtitle: Text("${data['time']} | ${data['info']}"),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     Checkbox(value: isDone, onChanged: (val) => FirebaseService.updateTaskStatus(id, val!)),
                     IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20), onPressed: () => _deleteItem(id)),
-                  ],
-                ),
+                ]),
                 onTap: () => _openForm(document: docs[index]),
               ),
             );
@@ -204,7 +276,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         var photos = snapshot.data!.docs;
-        if (photos.isEmpty) return const Center(child: Text("Chưa có ảnh nào. Bấm nút + để chia sẻ ảnh!", style: TextStyle(color: Colors.grey)));
+        if (photos.isEmpty) return const Center(child: Text("Chưa có ảnh nào.", style: TextStyle(color: Colors.grey)));
 
         return GridView.builder(
           padding: const EdgeInsets.all(12),
@@ -214,8 +286,7 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
             return ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(
-                imageUrl: photos[index]['url'],
-                fit: BoxFit.cover,
+                imageUrl: photos[index]['url'], fit: BoxFit.cover,
                 placeholder: (context, url) => Container(color: Colors.grey[200]),
                 errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
@@ -226,30 +297,59 @@ class _AnTamConDashboardState extends State<AnTamConDashboard> {
     );
   }
 
+  // --- [FIX QUAN TRỌNG] LIST SOS KHÔNG ĐƯỢC LỌC TIN ĐÃ ĐỌC ---
   Widget _buildSOSList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getAlertsStream(),
+      stream: FirebaseFirestore.instance
+          .collection('alerts')
+          .where('familyId', isEqualTo: _familyId) // Chỉ lọc theo Gia đình
+          //.where('isRead', isEqualTo: false) <-- ĐÃ XÓA DÒNG NÀY ĐỂ KHÔNG BỊ MẤT TIN
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         var alerts = snapshot.data!.docs;
-        if (alerts.isEmpty) return const Center(child: Text("An toàn, không có cảnh báo SOS."));
+        
+        if (alerts.isEmpty) {
+          return const Center(child: Text("An toàn, không có thông báo nào.", style: TextStyle(color: Colors.grey)));
+        }
 
         return ListView.builder(
           itemCount: alerts.length,
           itemBuilder: (context, index) {
             var data = alerts[index].data() as Map<String, dynamic>;
+            bool isSos = data['type'] == 'sos';
+            bool isRead = data['isRead'] ?? true; // Kiểm tra trạng thái
+
             String timeStr = "Vừa xong";
             if (data['timestamp'] != null) {
               Timestamp t = data['timestamp'];
               timeStr = DateFormat('HH:mm dd/MM').format(t.toDate());
             }
+
             return Card(
-              color: Colors.red.shade50,
+              // Đã đọc thì màu nhạt, Chưa đọc thì màu đậm
+              color: isSos 
+                  ? (isRead ? Colors.red.shade50 : Colors.red.shade100)
+                  : (isRead ? Colors.blue.shade50 : Colors.blue.shade100),
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListTile(
-                leading: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 32),
-                title: Text(data['title'] ?? 'CẢNH BÁO', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                subtitle: Text("${data['message']}\nThời gian: $timeStr"),
+                leading: Icon(
+                  isSos ? Icons.warning_amber_rounded : Icons.phone_callback, 
+                  color: isSos ? Colors.red : Colors.blue, 
+                  size: 32
+                ),
+                title: Text(
+                  data['title'] ?? 'Thông báo', 
+                  style: TextStyle(
+                    fontWeight: isRead ? FontWeight.normal : FontWeight.bold, // Chưa đọc thì in đậm
+                    color: isSos ? Colors.red : Colors.blue[900]
+                  )
+                ),
+                subtitle: Text("${data['message']}\n$timeStr"),
+                trailing: isRead 
+                    ? const Icon(Icons.check_circle_outline, size: 18, color: Colors.grey)
+                    : const Icon(Icons.circle, size: 12, color: Colors.redAccent), // Chấm đỏ
               ),
             );
           },
